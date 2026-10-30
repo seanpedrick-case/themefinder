@@ -1,0 +1,21 @@
+# LiteLLM proxy for ThemeFinder → Bedrock.
+#
+# Pin by digest after first pull (do NOT use :latest):
+#   docker pull ghcr.io/berriai/litellm:v1.106.6
+#   docker inspect ghcr.io/berriai/litellm:v1.106.6 --format='{{index .RepoDigests 0}}'
+# Set LITELLM_IMAGE to that digest in .env or your deploy system.
+
+services:
+  litellm:
+    image: ${LITELLM_IMAGE:-ghcr.io/berriai/litellm:v1.106.6}
+    ports:
+      - "127.0.0.1:4000:4000"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      AWS_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+    restart: unless-stopped

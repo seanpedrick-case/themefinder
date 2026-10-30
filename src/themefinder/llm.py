@@ -6,6 +6,7 @@ and an OpenAI implementation. Designed for easy extension to other providers.
 
 import asyncio
 import concurrent.futures
+import os
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
@@ -76,3 +77,41 @@ class OpenAILLM:
                     asyncio.run, self.ainvoke(prompt, output_model)
                 ).result()
         return asyncio.run(self.ainvoke(prompt, output_model))
+
+
+def openai_llm_from_gateway_env(
+    *,
+    model_env: str = "BEDROCK_LITELLM_MODEL",
+    gateway_url_env: str = "LLM_GATEWAY_URL",
+    api_key_env: str = "LITELLM_API_KEY",
+    fallback_api_key_env: str = "CONSULT_EVAL_LITELLM_API_KEY",
+    temperature: float = 0.0,
+    timeout: int = 600,
+) -> OpenAILLM:
+    """Build an ``OpenAILLM`` client for a LiteLLM (or other OpenAI-compatible) gateway.
+
+    Used for AWS Bedrock when the proxy is configured with a Bedrock ``model_list`` entry
+    (see ``deploy/litellm/config.yaml``).
+    """
+    model = os.getenv(model_env)
+    base_url = os.getenv(gateway_url_env)
+    api_key = os.getenv(api_key_env) or os.getenv(fallback_api_key_env)
+    missing: list[str] = []
+    if not model:
+        missing.append(model_env)
+    if not base_url:
+        missing.append(gateway_url_env)
+    if not api_key:
+        missing.append(f"{api_key_env} or {fallback_api_key_env}")
+    if missing:
+        raise ValueError(
+            "Missing environment variables for gateway LLM: "
+            + ", ".join(missing)
+        )
+    return OpenAILLM(
+        model=model,
+        request_kwargs={"temperature": temperature},
+        base_url=base_url,
+        api_key=api_key,
+        timeout=timeout,
+    )

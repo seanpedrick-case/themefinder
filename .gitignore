@@ -40,6 +40,7 @@ Brewfile.lock.json
 *.ppt
 *.docx
 output/
+examples/output/
 
 # Rendered presentations
 *.html
