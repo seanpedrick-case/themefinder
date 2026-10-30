@@ -1,0 +1,4 @@
+# Pinned LiteLLM proxy dependencies (ThemeFinder Bedrock gateway).
+# Do not use unpinned installs or litellm==1.107.0 (supply-chain incident, Oct 2026).
+# Upgrade only after reading https://docs.litellm.ai/blog/security-incident-oct-21-2026
+litellm==1.106.6

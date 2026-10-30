@@ -1,4 +1,5 @@
-from .llm import LLM, LLMResponse, OpenAILLM
+from .bedrock_llm import BedrockLLM, bedrock_llm_from_env
+from .llm import LLM, LLMResponse, OpenAILLM, openai_llm_from_gateway_env
 from .tasks import (
     detail_detection,
     find_themes,
@@ -16,9 +17,12 @@ from .themeset_rules import (
 )
 
 __all__ = [
+    "BedrockLLM",
     "LLM",
     "LLMResponse",
     "OpenAILLM",
+    "bedrock_llm_from_env",
+    "openai_llm_from_gateway_env",
     "find_themes",
     "theme_clustering",
     "theme_condensation",

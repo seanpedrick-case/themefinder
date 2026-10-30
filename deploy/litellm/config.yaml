@@ -1,0 +1,21 @@
+# LiteLLM proxy — OpenAI-compatible gateway to AWS Bedrock for ThemeFinder.
+# Docs: https://docs.litellm.ai/docs/providers/bedrock
+#
+# Start (from repo root, after pip install -r deploy/litellm/requirements.txt):
+#   litellm --config deploy/litellm/config.yaml --port 4000
+
+model_list:
+  - model_name: themefinder-claude
+    litellm_params:
+      # Adjust model ID to one enabled in your account/region.
+      model: bedrock/us.anthropic.claude-sonnet-4-5-20250929-v1:0
+      aws_region_name: os.environ/AWS_REGION
+      # Prefer IAM role on the host; omit keys when using instance/task credentials.
+      aws_access_key_id: os.environ/AWS_ACCESS_KEY_ID
+      aws_secret_access_key: os.environ/AWS_SECRET_ACCESS_KEY
+
+litellm_settings:
+  drop_params: true
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

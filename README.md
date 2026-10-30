@@ -22,50 +22,31 @@ ThemeFinder now supports a range of language models through structured outputs.
 
 The function `find_themes` identifies common themes in responses and labels them, it also outputs results from intermediate steps in the theme finding pipeline.
 
-For this example, import the following Python packages into your virtual environment: `asyncio`, `pandas`, `lanchain`. And import `themefinder` as described above.
-
-If you are using environment variables (eg for API keys), you can use `python-dotenv` to read variables from a `.env` file. 
-
-If you are using an Azure OpenAI endpoint, you will need the following variables:
-
-- `AZURE_OPENAI_API_KEY`
-- `AZURE_OPENAI_ENDPOINT`
-- `OPENAI_API_VERSION`
-- `AUTO_EVAL_4_1_SWEDEN_DEPLOYMENT`
-- `AZURE_OPENAI_BASE_URL`
-
-Otherwise you will need whichever variables [LangChain](https://www.langchain.com/) requires for your LLM of choice.
+Install `asyncio` (stdlib), `pandas`, and optionally `python-dotenv` for API settings. Pass any object implementing the `LLM` protocol. Use [`BedrockLLM`](docs/bedrock.md) for **AWS Bedrock** (SSO / IAM role), [`OpenAILLM`](src/themefinder/llm.py) for OpenAI, Azure, or OpenAI-compatible gateways.
 
 ```python
 import asyncio
 from dotenv import load_dotenv
 import pandas as pd
-from langchain_openai import AzureChatOpenAI
-from themefinder import find_themes
+from themefinder import find_themes, OpenAILLM
 
-# If needed, load LLM API settings from .env file
 load_dotenv()
 
-# Initialise your LLM of choice using langchain
-llm = AzureChatOpenAI(
-    model="gpt-4o",
-    temperature=0,
+llm = OpenAILLM(
+    model="gpt-4o-2024-08-06",
+    request_kwargs={"temperature": 0},
+    # api_key=os.environ["OPENAI_API_KEY"],
 )
 
-# Set up your data
 responses_df = pd.DataFrame({
    "response_id": ["1", "2", "3", "4", "5"],
-   "response": ["I think it's awesome, I can use it for consultation analysis.", 
+   "response": ["I think it's awesome, I can use it for consultation analysis.",
    "It's great.", "It's a good approach to topic modelling.", "I'm not sure, I need to trial it more.", "I don't like it so much."]
 })
 
-# Add your question
 question = "What do you think of ThemeFinder?"
-
-# Make the system prompt specific to your use case 
 system_prompt = "You are an AI evaluation tool analyzing survey responses about a Python package."
 
-# Run the function to find themes, we use asyncio to query LLM endpoints asynchronously, so we need to await our function
 async def main():
     result = await find_themes(responses_df, llm, question, system_prompt=system_prompt)
     print(result)
@@ -73,6 +54,32 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+
+### AWS Bedrock (native — recommended)
+
+Use boto3’s **credential chain** (IAM Identity Center / `AWS_PROFILE`, session env vars, or instance role). No LiteLLM proxy required. See [docs/bedrock.md](docs/bedrock.md).
+
+```bash
+aws sso login --profile your-org-profile
+export AWS_PROFILE=your-org-profile
+export AWS_REGION=eu-west-2
+export BEDROCK_MODEL_ID=us.anthropic.claude-sonnet-4-5-20250929-v1:0
+```
+
+```python
+from themefinder import find_themes, bedrock_llm_from_env
+
+llm = bedrock_llm_from_env()
+result = await find_themes(responses_df, llm, question=question, system_prompt=system_prompt)
+```
+
+Smoke test: `uv run python examples/bedrock_bedrock.py`.
+
+### AWS Bedrock (optional LiteLLM gateway)
+
+If you need a shared OpenAI-compatible proxy, use a **pinned** [LiteLLM deploy](deploy/litellm/README.md) and `openai_llm_from_gateway_env()` — see [HARDENING.md](deploy/litellm/HARDENING.md). Prefer native `BedrockLLM` when possible.
+
+For Azure OpenAI via a central gateway (as used in evals), set `LLM_GATEWAY_URL`, `CONSULT_EVAL_LITELLM_API_KEY`, and your deployment name on `OpenAILLM(model=...)`.
 
 ## ThemeFinder pipeline
 
@@ -104,7 +111,7 @@ ThemeFinder's pipeline consists of five distinct stages, each utilizing a specia
 
 The prompts used at each stage can be found in `src/themefinder/prompts/`.
 
-The file `src/themefinder.core.py` contains the function `find_themes` which runs the pipline. It also contains functions fo each individual stage.
+The file [`src/themefinder/tasks.py`](src/themefinder/tasks.py) contains `find_themes` and the individual pipeline stages.
 
 
 **For more detail - see the docs: [https://i-dot-ai.github.io/themefinder/](https://i-dot-ai.github.io/themefinder/).**
@@ -123,6 +130,10 @@ ThemeFinder's structured output approach makes it compatible with a wide range o
 
 ### Anthropic Models
 - Claude series (Claude 3 Opus, Sonnet, Haiku, etc.)
+- Claude on **AWS Bedrock** (native `BedrockLLM` or optional LiteLLM gateway)
+
+### AWS Bedrock
+- Anthropic Claude and other Bedrock foundation models via [`BedrockLLM`](docs/bedrock.md)
 
 ### Open Source Models
 - Llama 2, Llama 3

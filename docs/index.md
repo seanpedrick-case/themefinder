@@ -6,6 +6,8 @@ ThemeFinder is a topic modelling Python package designed for analyzing one-to-ma
 ## Quickstart
 See [README](https://github.com/i-dot-ai/themefinder) for how to get started with this package.
 
+For **AWS Bedrock** with SSO or IAM credentials, see [Bedrock setup](bedrock.md).
+
 
 ## ThemeFinder pipeline
 
